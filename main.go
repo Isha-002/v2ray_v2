@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	tele "gopkg.in/telebot.v3"
 )
@@ -10,20 +11,19 @@ import (
 const receiptChannelID = -1002457603510
 
 func main() {
-	err := InitBot()
+
+	b, err := tele.NewBot(tele.Settings{
+		Token:  "7743565843:AAHjGGubY_yLb51cacm0T-gEMtHtHd-IYWQ",
+		Poller: &tele.LongPoller{Timeout: 10 * time.Second},
+	})
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-  err = startBot()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	var menu = &tele.ReplyMarkup{}
 
 	// initial inline menu
-	menu := &tele.ReplyMarkup{}
 	menu.Inline(
 		menu.Row(buyBtn, renewBtn),
 	)
@@ -40,34 +40,64 @@ func main() {
 	// plans menu
 	plansMenu := &tele.ReplyMarkup{}
 
+	b.Handle("/start", func(c tele.Context) error {
+		userState := getUserState(c.Sender().ID)
+		resetStruct(userState)
+		return c.Send(chooseMenu, menu)
+	})
+
+	b.Handle(&buyBtn, func(c tele.Context) error {
+		userState := getUserState(c.Sender().ID)
+		userState.newUser = true
+		return c.Edit(chooseService, userSelection_Menu)
+	})
+
 	b.Handle(&oneUserPlans, func(c tele.Context) error {
 
 		plansWithBack := append(oneUser_plans, backBtn)
 		plansMenu.Inline(plansMenu.Split(2, plansWithBack)...)
 
-		return c.Edit("لطفا پلن مورد نظر خود را انتخاب کنید:", plansMenu)
+		return c.Edit(choosePlan, plansMenu)
 	})
 
 	b.Handle(&twoUserPlans, func(c tele.Context) error {
 		plansWithBack := append(twoUser_plans, backBtn)
 		plansMenu.Inline(plansMenu.Split(2, plansWithBack)...)
-		return c.Edit("لطفا پلن مورد نظر خود را انتخاب کنید:", plansMenu)
+		return c.Edit(choosePlan, plansMenu)
 	})
 
 	b.Handle(&unlimitedUserPlans, func(c tele.Context) error {
 		plansWithBack := append(unlimitedUser_plans, backBtn)
 		plansMenu.Inline(plansMenu.Split(1, plansWithBack)...)
-		return c.Edit("لطفا پلن مورد نظر خود را انتخاب کنید:", plansMenu)
+		return c.Edit(choosePlan, plansMenu)
 	})
 
 	b.Handle(&backBtn, func(c tele.Context) error {
-		return c.Edit("لطفا سرویس مورد نظر خود را انتخاب کنید:", userSelection_Menu)
+		return c.Edit(chooseService, userSelection_Menu)
 	})
 	b.Handle(&backtoMainBtn, func(c tele.Context) error {
-		return c.Edit("یک گزینه را انتخاب کنید:", menu)
+		return c.Edit(chooseMenu, menu)
 	})
 
-	// Handle plans
+	// range over plans 
+	rangePlans := func(plans []tele.Btn) {
+    for _, p := range plans {
+        plan := p
+        b.Handle(&plan, func(c tele.Context) error {
+            userState := getUserState(c.Sender().ID)
+            userState.HasSelectedPlan = true
+            userState.Referee = false
+            userState.selectedPlan = plan.Text
+						var planMsg string
+						if userState.Renew {
+							planMsg = reNewrangePlanMsg
+						} else {
+							planMsg = rangePlanMsg
+						}
+            return c.Edit(fmt.Sprintf(planMsg, plan.Text), tele.ModeHTML)
+        })
+    }
+}
 
 	rangePlans(oneUser_plans)
 	rangePlans(twoUser_plans)
@@ -80,34 +110,35 @@ func main() {
 			if userState.newUser && userState.HasSelectedPlan && !userState.Referee {
 				userState.Referee = true
 				userState.RefereeName = c.Message().Text
-				return c.Send("لطفا نام معرف خود را وارد کنید: ")
+				return c.Send(chooseReferee)
 			}
 			if userState.HasSelectedPlan && userState.Referee {
 				userName := c.Message().Text
 				user := c.Sender().Username
 				plan := userState.selectedPlan
 				referee := userState.RefereeName
-				sendToChannel := fmt.Sprintf("درخواست جدید:\n\nنام کاربری: %s\nآیدی: @%s\nمعرف: %s\nپلن: %s\nㅤ", userName, user, referee, plan)
+				sendToChannel := fmt.Sprintf(newRequestMsg, userName, user, referee, plan)
 				_, err := b.Send(tele.ChatID(receiptChannelID), sendToChannel)
 				if err != nil {
 					fmt.Println(err)
 					return nil
 				}
 
-				return c.Send("درخواست شما با موفقیت ثبت گردید. \nدر اسرع وقت توسط پشتیبانی با شما تماس گرفته میشود.\n ㅤ")
+				return c.Send(successPurchase)
 			}
-			return c.Send("لطفا ابتدا یک پلن انتخاب کنید.")
+			return c.Send(choosePlanError)
 		}
 		if userState.Renew {
-			userState.username = c.Message().Text
+			fmt.Println(userState.HasPanelName)
+			fmt.Println(userState.username)
 			if !userState.HasPanelName {
 				userState.PanelName = c.Message().Text
 				userState.HasPanelName = true
-				return c.Send("لطفاعکس رسید پرداختی خود را ارسال نمایید:")
+				return c.Send(sendReceiptMsg)
 			}
-			return c.Send("لطفا نام پنل کاربری خود را وارد کنید:")
+			return c.Send(sendPanelName)
 		}
-		return c.Send("برای شروع لطفا از منو گزینه مورد نظر خود را انتخاب کنید!")
+		return c.Send(chooseServiceError)
 	})
 
 	b.Handle(tele.OnPhoto, func(c tele.Context) error {
@@ -118,9 +149,9 @@ func main() {
 		if userState.HasSelectedPlan {
 			plan = userState.selectedPlan
 		} else {
-			plan = "تمدید فعلی"
+			plan = currentPlan
 		}
-		sendToChannel := fmt.Sprintf("درخواست تمدید \n\nنام کاربر: %s\nآیدی: @%s\nپلن: %s\nㅤ", userState.username, c.Sender().Username, plan)
+		sendToChannel := fmt.Sprintf(renewRequestMsg, userState.PanelName, c.Sender().Username, plan)
 
 		id , err := b.Send(tele.ChatID(receiptChannelID), userState.Receipt)
 		if err != nil {
@@ -128,25 +159,26 @@ func main() {
 			return nil
 		}
 		b.EditCaption(id, sendToChannel)
-		b.Send(tele.ChatID(receiptChannelID), fmt.Sprintf("user: %+v", userState))
-		return c.Send("درخواست شما با موفقیت ثبت گردید و پنل کاربری شما به زودی شارژ میشود!")}
-		return c.Send("Invalid response")
+		return c.Send(successRenew)}
+		return c.Send(photoError)
 	})
 
 	// renew logic
 	b.Handle(&renewBtn, func(c tele.Context) error {
 		userState := getUserState(c.Sender().ID)
 		userState.Renew = true
-		return c.Edit("برای تمدید کردن سرویس خود یکی از گزینه های زیر را انتخاب کنید:", renewMenu)
+		return c.Edit(renewFirstMsg, renewMenu)
 	})
 	b.Handle(&renewPlan, func(c tele.Context) error {
-		return c.Edit("لطفا نام پنل کاربری خود را وارد کنید:")
+		return c.Edit(sendPanelName)
 	})
 	b.Handle(&renewAnotherPlan, func(c tele.Context) error {
-		return c.Edit("یک گزینه را انتخاب کنید:", userSelection_Menu)
+		return c.Edit(chooseMenu, userSelection_Menu)
 	})
 
 	// Start the bot
-	fmt.Println("application started")
+	fmt.Println(startMsg)
 	b.Start()
 }
+
+
