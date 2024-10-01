@@ -12,13 +12,14 @@ const receiptChannelID = -1002457603510
 func main() {
 
 	b, err := tele.NewBot(tele.Settings{
-		Token:  "7743565843:AAHjGGubY_yLb51cacm0T-gEMtHtHd-IYWQ",
+		Token:  "7531655753:AAGEMNYvecko4uk4877_6Vp668e7jAVJ_zo",
 		Poller: &tele.LongPoller{Timeout: 10 * time.Second},
 	})
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
 
 	var menu = &tele.ReplyMarkup{}
 	var returnBtn = &tele.ReplyMarkup{}
