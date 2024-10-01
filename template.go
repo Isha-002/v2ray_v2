@@ -1,13 +1,15 @@
 package main
 
-import (tele "gopkg.in/telebot.v3")
+import (
+	tele "gopkg.in/telebot.v3"
+)
 
 type UserState struct {
 	HasSelectedPlan bool
 	selectedPlan    string
 	Referee         bool
 	RefereeName     string
-	newUser      bool
+	newUser         bool
 	//
 	Renew        bool
 	username     string
@@ -15,6 +17,7 @@ type UserState struct {
 	PanelName    string
 	SendReceipt  bool
 	Receipt      *tele.Photo
+	done         bool
 }
 
 func resetStruct(u *UserState) {

@@ -7,7 +7,6 @@ import (
 	tele "gopkg.in/telebot.v3"
 )
 
-
 const receiptChannelID = -1002457603510
 
 func main() {
@@ -22,10 +21,18 @@ func main() {
 	}
 
 	var menu = &tele.ReplyMarkup{}
+	var returnBtn = &tele.ReplyMarkup{}
+	var helpOptions = &tele.ReplyMarkup{}
 
 	// initial inline menu
 	menu.Inline(
 		menu.Row(buyBtn, renewBtn),
+	)
+	returnBtn.Inline(
+		returnBtn.Row(restartBtn, helpBtn),
+	)
+	helpOptions.Inline(
+		helpOptions.Row(androidHelp, iosHelp),
 	)
 
 	// user selection menu
@@ -44,6 +51,60 @@ func main() {
 		userState := getUserState(c.Sender().ID)
 		resetStruct(userState)
 		return c.Send(chooseMenu, menu)
+	})
+	b.Handle("/restart", func(c tele.Context) error {
+		userState := getUserState(c.Sender().ID)
+		resetStruct(userState)
+		return c.Send(chooseMenu, menu)
+	})
+	b.Handle(&restartBtn, func(c tele.Context) error {
+		userState := getUserState(c.Sender().ID)
+		resetStruct(userState)
+		return c.Send(chooseMenu, menu)
+	})
+
+	b.Handle(&helpBtn, func(c tele.Context) error {
+		return c.Edit(helpMsg, helpOptions)
+	})
+	b.Handle("/help", func(c tele.Context) error {
+
+		return c.Send(helpMsg, helpOptions)
+	})
+
+	b.Handle(&androidHelp, func(c tele.Context) error {
+
+		originalMessageID := 57
+		sourceChatID := int64(receiptChannelID)
+
+		_, err := b.Forward(tele.ChatID(c.Chat().ID), &tele.Message{
+			ID: originalMessageID,
+			Chat: &tele.Chat{
+				ID: sourceChatID,
+			},
+		})
+
+		if err != nil {
+			return c.Send(errForward)
+		}
+		return nil
+	})
+
+	b.Handle(&androidHelp, func(c tele.Context) error {
+
+		originalMessageID := 56
+		sourceChatID := int64(receiptChannelID)
+
+		_, err := b.Forward(tele.ChatID(c.Chat().ID), &tele.Message{
+			ID: originalMessageID,
+			Chat: &tele.Chat{
+				ID: sourceChatID,
+			},
+		})
+
+		if err != nil {
+			return c.Send(errForward)
+		}
+		return nil
 	})
 
 	b.Handle(&buyBtn, func(c tele.Context) error {
@@ -79,25 +140,25 @@ func main() {
 		return c.Edit(chooseMenu, menu)
 	})
 
-	// range over plans 
+	// range over plans
 	rangePlans := func(plans []tele.Btn) {
-    for _, p := range plans {
-        plan := p
-        b.Handle(&plan, func(c tele.Context) error {
-            userState := getUserState(c.Sender().ID)
-            userState.HasSelectedPlan = true
-            userState.Referee = false
-            userState.selectedPlan = plan.Text
-						var planMsg string
-						if userState.Renew {
-							planMsg = reNewrangePlanMsg
-						} else {
-							planMsg = rangePlanMsg
-						}
-            return c.Edit(fmt.Sprintf(planMsg, plan.Text), tele.ModeHTML)
-        })
-    }
-}
+		for _, p := range plans {
+			plan := p
+			b.Handle(&plan, func(c tele.Context) error {
+				userState := getUserState(c.Sender().ID)
+				userState.HasSelectedPlan = true
+				userState.Referee = false
+				userState.selectedPlan = plan.Text
+				var planMsg string
+				if userState.Renew {
+					planMsg = reNewrangePlanMsg
+				} else {
+					planMsg = rangePlanMsg
+				}
+				return c.Edit(fmt.Sprintf(planMsg, plan.Text), tele.ModeHTML)
+			})
+		}
+	}
 
 	rangePlans(oneUser_plans)
 	rangePlans(twoUser_plans)
@@ -106,6 +167,9 @@ func main() {
 	// Handle user text input
 	b.Handle(tele.OnText, func(c tele.Context) error {
 		userState := getUserState(c.Sender().ID)
+		if userState.done {
+			return c.Send(doneChat, returnBtn)
+		}
 		if !userState.Renew {
 			if userState.newUser && userState.HasSelectedPlan && !userState.Referee {
 				userState.Referee = true
@@ -123,8 +187,8 @@ func main() {
 					fmt.Println(err)
 					return nil
 				}
-
-				return c.Send(successPurchase)
+				userState.done = true
+				return c.Send(successPurchase, returnBtn)
 			}
 			return c.Send(choosePlanError)
 		}
@@ -144,22 +208,24 @@ func main() {
 	b.Handle(tele.OnPhoto, func(c tele.Context) error {
 		userState := getUserState(c.Sender().ID)
 		if userState.HasPanelName {
-		userState.Receipt = c.Message().Photo
-		var plan string
-		if userState.HasSelectedPlan {
-			plan = userState.selectedPlan
-		} else {
-			plan = currentPlan
-		}
-		sendToChannel := fmt.Sprintf(renewRequestMsg, userState.PanelName, c.Sender().Username, plan)
+			userState.Receipt = c.Message().Photo
+			var plan string
+			if userState.HasSelectedPlan {
+				plan = userState.selectedPlan
+			} else {
+				plan = currentPlan
+			}
+			sendToChannel := fmt.Sprintf(renewRequestMsg, userState.PanelName, c.Sender().Username, plan)
 
-		id , err := b.Send(tele.ChatID(receiptChannelID), userState.Receipt)
-		if err != nil {
-			fmt.Println(err)
-			return nil
+			id, err := b.Send(tele.ChatID(receiptChannelID), userState.Receipt)
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+			b.EditCaption(id, sendToChannel)
+			userState.done = true
+			return c.Send(successRenew, returnBtn)
 		}
-		b.EditCaption(id, sendToChannel)
-		return c.Send(successRenew)}
 		return c.Send(photoError)
 	})
 
@@ -180,5 +246,3 @@ func main() {
 	fmt.Println(startMsg)
 	b.Start()
 }
-
-

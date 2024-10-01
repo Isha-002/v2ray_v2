@@ -18,5 +18,8 @@ var (
 	renewFirstMsg = "برای تمدید کردن سرویس خود یکی از گزینه های زیر را انتخاب کنید:"
 	rangePlanMsg = "پلن \"%s\" با موفقیت برای شما ثبت شد! \nلطفا برای ادامه نام خود را وارد کنید:"
 	reNewrangePlanMsg = "پلن \"%s\" با موفقیت برای شما ثبت شد! \nلطفا برای ادامه نام پنل کاربری خود را وارد کنید:"
+	helpMsg = "لطفا آموزش مورد نظر خود را انتخاب کنید:"
+	doneChat = "لطفا برای شروع یک گزینه را انتخاب کنید:"
 	startMsg = "application started..."
+	errForward = "Error forwarding the message"
 )

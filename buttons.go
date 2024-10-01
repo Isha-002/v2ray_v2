@@ -19,3 +19,11 @@ var renewAnotherPlan = tele.Btn{Unique: "renew_another", Text: "تغییر سر�
 var backBtn = tele.Btn{Unique: "back_btn", Text: "↩️ بازگشت"}
 var backtoMainBtn = tele.Btn{Unique: "backToMain_btn", Text: "↩️ بازگشت"}
 
+// restart - help 
+var restartBtn = tele.Btn{Unique: "restart_service", Text: "🔃 شروع دوباره"}
+
+var helpBtn = tele.Btn{Unique: "help", Text: "آموزش استفاده هیدیفای"}
+var androidHelp = tele.Btn{Unique: "help_andriod", Text: "آموزش اندروید"}
+var iosHelp = tele.Btn{Unique: "help_ios", Text: "آموزش ios"}
+var v2rayDownload = tele.Btn{Unique: "v2ray_download", Text: "دانلود هیدیفای"}
+var irancelHelp = tele.Btn{Unique: "help_irancel", Text: "آموزش ایرانسل"}
