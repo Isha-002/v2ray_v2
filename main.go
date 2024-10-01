@@ -72,11 +72,9 @@ func main() {
 	})
 
 	b.Handle(&androidHelp, func(c tele.Context) error {
-
-		originalMessageID := 57
+		originalMessageID := 56
 		sourceChatID := int64(receiptChannelID)
-
-		_, err := b.Forward(tele.ChatID(c.Chat().ID), &tele.Message{
+		_, err := b.Copy(tele.ChatID(c.Chat().ID), &tele.Message{
 			ID: originalMessageID,
 			Chat: &tele.Chat{
 				ID: sourceChatID,
@@ -89,12 +87,10 @@ func main() {
 		return nil
 	})
 
-	b.Handle(&androidHelp, func(c tele.Context) error {
-
-		originalMessageID := 56
+	b.Handle(&iosHelp, func(c tele.Context) error {
+		originalMessageID := 57
 		sourceChatID := int64(receiptChannelID)
-
-		_, err := b.Forward(tele.ChatID(c.Chat().ID), &tele.Message{
+		_, err := b.Copy(tele.ChatID(c.Chat().ID), &tele.Message{
 			ID: originalMessageID,
 			Chat: &tele.Chat{
 				ID: sourceChatID,
