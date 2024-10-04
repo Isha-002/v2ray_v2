@@ -176,9 +176,13 @@ func main() {
 			if userState.HasSelectedPlan && userState.Referee {
 				userName := c.Message().Text
 				user := c.Sender().Username
+				if user == "" {
+					user = c.Sender().FirstName + " " + c.Sender().LastName
+				}
 				plan := userState.selectedPlan
 				referee := userState.RefereeName
-				sendToChannel := fmt.Sprintf(newRequestMsg, userName, user, referee, plan)
+				//bug
+				sendToChannel := fmt.Sprintf(newRequestMsg, referee, user, userName, plan)
 				_, err := b.Send(tele.ChatID(receiptChannelID), sendToChannel)
 				if err != nil {
 					fmt.Println(err)
