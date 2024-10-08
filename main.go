@@ -90,9 +90,21 @@ func main() {
 
 	b.Handle(&iosHelp, func(c tele.Context) error {
 		originalMessageID := 57
+		videoMessageID := 87
 		sourceChatID := int64(receiptChannelID)
 		_, err := b.Copy(tele.ChatID(c.Chat().ID), &tele.Message{
 			ID: originalMessageID,
+			Chat: &tele.Chat{
+				ID: sourceChatID,
+			},
+		})
+
+		if err != nil {
+			return c.Send(errForward)
+		}
+
+		_, err = b.Copy(tele.ChatID(c.Chat().ID), &tele.Message{
+			ID: videoMessageID,
 			Chat: &tele.Chat{
 				ID: sourceChatID,
 			},
@@ -168,21 +180,18 @@ func main() {
 			return c.Send(doneChat, returnBtn)
 		}
 		if !userState.Renew {
-			if userState.newUser && userState.HasSelectedPlan && !userState.Referee {
+			if userState.newUser && userState.HasSelectedPlan && !userState.Referee && !userState.hasphoneNumber {
 				userState.Referee = true
-				userState.RefereeName = c.Message().Text
+				userState.username = c.Message().Text
 				return c.Send(chooseReferee)
 			}
-			if userState.HasSelectedPlan && userState.Referee {
-				userName := c.Message().Text
-				user := c.Sender().Username
-				if user == "" {
-					user = c.Sender().FirstName + " " + c.Sender().LastName
-				}
-				plan := userState.selectedPlan
-				referee := userState.RefereeName
-				//bug
-				sendToChannel := fmt.Sprintf(newRequestMsg, referee, user, userName, plan)
+			if userState.HasSelectedPlan && userState.Referee && !userState.hasphoneNumber {
+				userState.RefereeName = c.Message().Text
+			}
+
+			user := c.Sender().Username
+			if user != "" {
+				sendToChannel := fmt.Sprintf(newRequestMsg, userState.username, "@" + user , userState.RefereeName, userState.selectedPlan)
 				_, err := b.Send(tele.ChatID(receiptChannelID), sendToChannel)
 				if err != nil {
 					fmt.Println(err)
@@ -191,23 +200,50 @@ func main() {
 				userState.done = true
 				return c.Send(successPurchase, returnBtn)
 			}
+
+			if user == "" && !userState.hasphoneNumber  {
+			userState.hasphoneNumber = true
+				return c.Send(askPhoneNumber)
+			}  
+			if userState.hasphoneNumber {
+				noUserId := noId
+				userState.phoneNumber = c.Message().Text
+				sendToChannel := fmt.Sprintf(newRequestMsgWithPhone, userState.username, noUserId , userState.phoneNumber, userState.RefereeName, userState.selectedPlan)
+				_, err := b.Send(tele.ChatID(receiptChannelID), sendToChannel)
+				if err != nil {
+					fmt.Println(err)
+					return nil
+				}
+				userState.done = true
+				return c.Send(successPurchase, returnBtn) 
+			}
 			return c.Send(choosePlanError)
 		}
 		if userState.Renew {
-			fmt.Println(userState.HasPanelName)
-			fmt.Println(userState.username)
-			if !userState.HasPanelName {
+			userId := c.Sender().Username
+			if !userState.HasPanelName && userId != "" {
 				userState.PanelName = c.Message().Text
 				userState.HasPanelName = true
 				return c.Send(sendReceiptMsg)
 			}
-			return c.Send(sendPanelName)
+			if userId == "" && !userState.hasphoneNumber {
+				userState.HasPanelName = true
+				userState.PanelName = c.Message().Text
+				userState.hasphoneNumber = true
+				return c.Send(askPhoneNumber)
+			}
+			if userState.hasphoneNumber {
+				userState.phoneNumber = c.Message().Text
+				return c.Send(sendReceiptMsg)
+			}
+
 		}
 		return c.Send(chooseServiceError)
 	})
 
 	b.Handle(tele.OnPhoto, func(c tele.Context) error {
 		userState := getUserState(c.Sender().ID)
+		userId := c.Sender().Username
 		if userState.HasPanelName {
 			userState.Receipt = c.Message().Photo
 			var plan string
@@ -216,7 +252,12 @@ func main() {
 			} else {
 				plan = currentPlan
 			}
-			sendToChannel := fmt.Sprintf(renewRequestMsg, userState.PanelName, c.Sender().Username, plan)
+			if userId == "" {
+				userId = userState.phoneNumber
+			} else {
+				userId = "@" + c.Sender().Username
+			}
+			sendToChannel := fmt.Sprintf(renewRequestMsg, userState.PanelName, userId, plan)
 
 			id, err := b.Send(tele.ChatID(receiptChannelID), userState.Receipt)
 			if err != nil {

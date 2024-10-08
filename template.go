@@ -10,6 +10,8 @@ type UserState struct {
 	Referee         bool
 	RefereeName     string
 	newUser         bool
+	phoneNumber     string
+	hasphoneNumber  bool
 	//
 	Renew        bool
 	username     string
