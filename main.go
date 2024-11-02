@@ -10,7 +10,7 @@ import (
 const receiptChannelID = -1002457603510
 
 func main() {
-
+	// i dont care
 	b, err := tele.NewBot(tele.Settings{
 		Token:  "7531655753:AAGEMNYvecko4uk4877_6Vp668e7jAVJ_zo",
 		Poller: &tele.LongPoller{Timeout: 10 * time.Second},
