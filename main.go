@@ -2,24 +2,41 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"strconv"
 	"time"
 
+	"github.com/joho/godotenv"
 	tele "gopkg.in/telebot.v3"
 )
 
-const receiptChannelID = -1002457603510
 
 func main() {
 
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal(envError)
+	}
+
+	receiptChannelIDstr := os.Getenv("RECEIPT_CHANNEL_ID")
+
+	receiptChannelID, err := strconv.ParseInt(receiptChannelIDstr, 10, 64)
+	if err != nil {
+		fmt.Println(typeConvErr, err)
+		return
+	}
+
+	token := os.Getenv("TELEGRAM_BOT_TOKEN")
+
 	b, err := tele.NewBot(tele.Settings{
-		Token:  "7531655753:AAGEMNYvecko4uk4877_6Vp668e7jAVJ_zo",
+		Token:  token,
 		Poller: &tele.LongPoller{Timeout: 10 * time.Second},
 	})
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-
 
 	var menu = &tele.ReplyMarkup{}
 	var returnBtn = &tele.ReplyMarkup{}
@@ -191,7 +208,7 @@ func main() {
 
 			user := c.Sender().Username
 			if user != "" {
-				sendToChannel := fmt.Sprintf(newRequestMsg, userState.username, "@" + user , userState.RefereeName, userState.selectedPlan)
+				sendToChannel := fmt.Sprintf(newRequestMsg, userState.username, "@"+user, userState.RefereeName, userState.selectedPlan)
 				_, err := b.Send(tele.ChatID(receiptChannelID), sendToChannel)
 				if err != nil {
 					fmt.Println(err)
@@ -201,21 +218,21 @@ func main() {
 				return c.Send(successPurchase, returnBtn)
 			}
 
-			if user == "" && !userState.hasphoneNumber  {
-			userState.hasphoneNumber = true
+			if user == "" && !userState.hasphoneNumber {
+				userState.hasphoneNumber = true
 				return c.Send(askPhoneNumber)
-			}  
+			}
 			if userState.hasphoneNumber {
 				noUserId := noId
 				userState.phoneNumber = c.Message().Text
-				sendToChannel := fmt.Sprintf(newRequestMsgWithPhone, userState.username, noUserId , userState.phoneNumber, userState.RefereeName, userState.selectedPlan)
+				sendToChannel := fmt.Sprintf(newRequestMsgWithPhone, userState.username, noUserId, userState.phoneNumber, userState.RefereeName, userState.selectedPlan)
 				_, err := b.Send(tele.ChatID(receiptChannelID), sendToChannel)
 				if err != nil {
 					fmt.Println(err)
 					return nil
 				}
 				userState.done = true
-				return c.Send(successPurchase, returnBtn) 
+				return c.Send(successPurchase, returnBtn)
 			}
 			return c.Send(choosePlanError)
 		}

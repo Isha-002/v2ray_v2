@@ -23,6 +23,6 @@ import (
 	// unlimited user plans
 	var unlimitedUser_plans = []tele.Btn{
 		{Unique: "unlimitedUser_plan1", Text: "۱ ماهه ۱۵۰ گیگ ۲۵۰ تومن"},
-		{Unique: "unlimitedUser_plan2", Text: "۱ ماهه ۲۵۰ گیگ ۳۱۵ تومن"},
-		{Unique: "unlimitedUser_plan3", Text: "۱ ماهه ۳۵۰ گیگ  ۴۰۰ تومن"},
+		{Unique: "unlimitedUser_plan2", Text: "۱ ماهه ۲۵۰ گیگ ۳۱۰ تومن"},
+		{Unique: "unlimitedUser_plan3", Text: "۱ ماهه ۳۵۰ گیگ  ۳۸۰ تومن"},
 	}

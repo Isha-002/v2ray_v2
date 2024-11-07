@@ -25,4 +25,6 @@ var (
 	noId = "ندارد"
 	startMsg = "application started..."
 	errForward = "Error forwarding the message"
+	envError = "Error loading .env file"
+	typeConvErr = "Error converting RECEIPT_CHANNEL_ID to int64:"
 )
