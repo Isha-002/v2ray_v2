@@ -14,7 +14,7 @@ import (
 
 
 func main() {
-
+	// run
 	fmt.Printf("OS: %s\nArchitecture: %s\n", runtime.GOOS, runtime.GOARCH)
 
 	err := godotenv.Load()
